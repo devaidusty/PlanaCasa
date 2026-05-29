@@ -543,17 +543,95 @@ New: `/calculator`, `/constructors`, `/constructors/[id]`, `/guides`, `/guides/[
 
 ---
 
-## What is NOT built yet (deferred to later phases)
+## Commit 7 — Phase 6: admin panel, legal pages, SEO, PWA, analytics
+
+**Date:** 2026-05-29
+**Branch:** main
+**Packages added:** `@vercel/analytics`
+
+### Admin auth
+- `lib/auth/requireAdmin.ts` — `requireAdmin()` returns `{user, profile}` or null (session + public.users.role check); `isAdmin()`. Belt-and-suspenders with proxy.ts gating.
+
+### Admin panel (`app/admin/`, `components/admin/`)
+| Area | Files | Capabilities |
+|------|-------|-------------|
+| Shell | `app/admin/layout.tsx` (requireAdmin → redirect, robots noindex), `AdminSidebar.tsx` | Darker navy back-office chrome, active-link highlight, mobile top bar, "Back to site" |
+| Overview | `app/admin/page.tsx` | Revenue this-month + all-time by currency, 8 stat cards, recent orders table, recent leads list |
+| Designs | `app/admin/designs/page.tsx`, `AdminDesignsTable.tsx`, `DesignFormDialog.tsx`, `app/api/admin/designs/route.ts` | Full CRUD, featured quick-toggle, optional default-package creation, search |
+| Contractors | `app/admin/contractors/page.tsx`, `AdminContractorsTable.tsx`, `ContractorFormDialog.tsx`, `app/api/admin/contractors/route.ts`, `app/api/admin/leads/route.ts` | CRUD, inline tier select, verified/featured toggles, Recent Leads panel with status update |
+| Orders | `app/admin/orders/page.tsx`, `AdminOrdersTable.tsx`, `app/api/admin/orders/resend/route.ts` | Status filter + search, revenue summary, client-side CSV export, resend confirmation email |
+| Guides | `app/admin/guides/page.tsx`, `AdminGuidesTable.tsx`, `GuideFormDialog.tsx`, `app/api/admin/guides/route.ts` | CRUD, markdown content editor, is_free toggle |
+| Newsletter | `app/admin/newsletter/page.tsx`, `AdminNewsletterTable.tsx` | Read-only list, search, CSV export |
+
+All `/api/admin/*` handlers independently verify admin via requireAdmin (403 if not) and write via admin client.
+
+### Legal pages (`app/legal/`)
+- `components/legal/LegalLayout.tsx` — shared prose container, title, last-updated (May 29 2026), breadcrumb
+- `terms/page.tsx` — conceptual-reference-only, no refunds, single-build license, max 5 downloads, liability waiver, independent contractors, IP ownership, PH governing law
+- `privacy/page.tsx` — data collected, usage, cookies, GDPR + PH Data Privacy Act (RA 10173), third-party services, deletion rights
+- `disclaimer/page.tsx` — estimates approximate, consult licensed professionals, not a construction company, contractor vetting ≠ guarantee
+- `Footer.tsx` updated: `/terms` → `/legal/terms` etc.
+
+### SEO
+- `app/sitemap.ts` — static routes + dynamic design slugs / guide slugs / contractor ids; excludes admin/dashboard/checkout/success/auth/api
+- `app/robots.ts` — allow /, disallow private routes, references sitemap
+- Admin pages set robots noindex; dashboard covered by robots.txt disallow (client layout can't export metadata)
+
+### PWA + analytics
+- `app/manifest.ts` — MetadataRoute.Manifest (standalone, brand colors, SVG icon)
+- `public/icon.svg` — navy square + gold house mark
+- `components/shared/GoogleAnalytics.tsx` — renders only when NEXT_PUBLIC_GA_MEASUREMENT_ID set and ≠ 'G-PLACEHOLDER'
+- `app/layout.tsx` — wired `<Analytics/>` (@vercel/analytics) + GA + viewport.themeColor
+- **PWA approach: manifest-only, no service worker** — deliberately avoided next-pwa to protect the Turbopack build. next.config.ts unchanged.
+
+### Shared helpers
+- `lib/constants/designStyles.ts` — style labels + DEFAULT_PACKAGES (Basic/Standard/Premium inclusion arrays)
+- `lib/utils/exportCsv.ts` — client-side CSV download
+- `components/admin/ConfirmDeleteDialog.tsx` — reusable delete confirmation
+
+### Migration file reconciliation
+- `supabase/migrations/0002_contractor_leads.sql` — the Phase 6 agent initially wrote a version with a 4-value enum (missing 'quoted') and mismatched policies. **Corrected to mirror the actually-applied DB schema** (5-value `lead_status` enum, "Users read own leads" + "Admin reads all leads" policies). The table was applied live during Phase 5 via Supabase MCP (`add_contractor_leads`); this file is the documentation record.
+
+### Deviations
+1. PWA manifest-only (no SW) to avoid Turbopack breakage
+2. Dashboard noindex via robots.txt (client layout can't export metadata)
+3. Numeric form fields use `z.number()` + `valueAsNumber` (zod v4 `z.coerce.number()` breaks @hookform/resolvers typing); base-ui Select handlers null-guarded
+4. Tables use plain Tailwind `<table>` (no shadcn table component needed)
+
+### Routes after Phase 6 (37 pages total)
+New: `/admin` + `/admin/{designs,contractors,orders,guides,newsletter}`, `/api/admin/{designs,contractors,guides,leads,orders/resend}`, `/legal/{terms,privacy,disclaimer}`, `/sitemap.xml`, `/robots.txt`, `/manifest.webmanifest`
+
+---
+
+## ⚠️ POST-BUILD SETUP REQUIRED
+
+### Grant yourself admin access
+The admin panel requires `public.users.role = 'admin'`. No admin exists yet. After you register an account on the site, run this once (via Supabase SQL editor or ask me to run it):
+```sql
+UPDATE public.users SET role = 'admin' WHERE email = 'YOUR_EMAIL_HERE';
+```
+
+### Upload real plan files
+Downloads currently return a friendly "demo mode" notice because the `plan-files` Storage bucket is empty. Upload actual plan PDFs and set `design_packages.file_urls` to enable real downloads.
+
+### Phase 7 (when keys arrive) — real integrations
+| Feature | What to do |
+|---------|-----------|
+| Resend email | Add `ResendEmailService` impl; swap in `lib/email/index.ts` getEmailService() when RESEND_API_KEY present |
+| PayMongo | Add adapter implementing PaymentProvider; route gcash/maya/card/bank in `lib/payments/index.ts`; build `/api/webhooks/paymongo` (HMAC verify) |
+| Stripe | Add adapter; route stripe_card; build `/api/webhooks/stripe` (signature verify); idempotency via transaction_id unique constraint |
+
+---
+
+## What is NOT built yet (deferred)
 
 | Feature | Target phase |
 |---------|-------------|
-| Admin panel (designs/contractors/orders/guides CRUD) | Phase 6 |
-| Legal pages (terms/privacy/disclaimer) | Phase 6 |
-| PWA manifest + service worker | Phase 6 |
-| SEO sitemap.xml + robots.txt | Phase 6 |
 | PayMongo integration | Phase 7 |
 | Stripe integration | Phase 7 |
 | Resend email integration | Phase 7 |
+| Real plan-file uploads | Content/ops |
+| Real house render imagery (replacing Unsplash) | Content/ops |
 
 ---
 
@@ -585,4 +663,4 @@ New: `/calculator`, `/constructors`, `/constructors/[id]`, `/guides`, `/guides/[
 
 ---
 
-*Last updated: Phase 5 complete — 2026-05-29*
+*Last updated: Phase 6 complete (MVP feature-complete) — 2026-05-29*

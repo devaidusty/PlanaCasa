@@ -17,9 +17,9 @@ const SUPPORT_LINKS = [
 ]
 
 const LEGAL_LINKS = [
-  { label: 'Terms of Service',  href: '/terms' },
-  { label: 'Privacy Policy',    href: '/privacy' },
-  { label: 'Disclaimer',        href: '/disclaimer' },
+  { label: 'Terms of Service',  href: '/legal/terms' },
+  { label: 'Privacy Policy',    href: '/legal/privacy' },
+  { label: 'Disclaimer',        href: '/legal/disclaimer' },
 ]
 
 // All social icons as inline SVGs (lucide-react v1 removed brand icons)

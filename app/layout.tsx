@@ -1,11 +1,13 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Playfair_Display, Inter, Cormorant_Garamond } from 'next/font/google'
 import { Toaster } from 'sonner'
+import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import { AuthProvider } from '@/components/providers/AuthProvider'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import MobileBottomNav from '@/components/layout/MobileBottomNav'
+import GoogleAnalytics from '@/components/shared/GoogleAnalytics'
 
 // ─── Fonts ────────────────────────────────────────────────────────────────────
 
@@ -85,6 +87,10 @@ export const metadata: Metadata = {
   },
 }
 
+export const viewport: Viewport = {
+  themeColor: '#1B2A4A',
+}
+
 // ─── Root Layout ──────────────────────────────────────────────────────────────
 
 export default function RootLayout({
@@ -117,6 +123,8 @@ export default function RootLayout({
             }}
           />
         </AuthProvider>
+        <Analytics />
+        <GoogleAnalytics />
       </body>
     </html>
   )
