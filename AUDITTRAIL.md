@@ -338,7 +338,7 @@ All interfaces for the entire application:
 
 ---
 
-## Commit 4 — Phase 3: Gallery + Design Detail pages
+## Commit 4 — `4998831` — Phase 3: Gallery + Design Detail pages
 
 **Date:** 2026-05-29
 **Branch:** main
@@ -414,7 +414,7 @@ All interfaces for the entire application:
 
 ---
 
-## Commit 5 — Phase 4: checkout, mock payment, downloads, dashboard, email service
+## Commit 5 — `03e9b8b` — Phase 4: checkout, mock payment, downloads, dashboard, email service
 
 **Date:** 2026-05-29
 **Branch:** main
@@ -482,7 +482,7 @@ All interfaces for the entire application:
 
 ---
 
-## Commit 6 — Phase 5: contractor marketplace, profiles, reviews, calculator, guides
+## Commit 6 — `aead8ff` — Phase 5: contractor marketplace, profiles, reviews, calculator, guides
 
 **Date:** 2026-05-29
 **Branch:** main
@@ -543,7 +543,7 @@ New: `/calculator`, `/constructors`, `/constructors/[id]`, `/guides`, `/guides/[
 
 ---
 
-## Commit 7 — Phase 6: admin panel, legal pages, SEO, PWA, analytics
+## Commit 7 — `5116381` — Phase 6: admin panel, legal pages, SEO, PWA, analytics
 
 **Date:** 2026-05-29
 **Branch:** main
