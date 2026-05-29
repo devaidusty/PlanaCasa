@@ -482,17 +482,75 @@ All interfaces for the entire application:
 
 ---
 
+## Commit 6 — Phase 5: contractor marketplace, profiles, reviews, calculator, guides
+
+**Date:** 2026-05-29
+**Branch:** main
+**Packages added:** `remark-gfm` (markdown tables) · shadcn `slider`
+
+### Infrastructure changes
+- **DB migration `add_contractor_leads`** (applied via Supabase MCP): new enum `lead_status` (new/contacted/quoted/won/lost) + table `contractor_leads` (contractor_id, user_id nullable, design_id nullable, name, phone, email, location, message, status, created_at) + indexes + RLS (anyone INSERT, owner SELECT, admin SELECT all).
+
+### Contractor marketplace (`app/constructors/`, `components/constructors/`)
+| File | Purpose |
+|------|---------|
+| `app/constructors/page.tsx` | Server — reads province/search/verified/specialization/sort, server-side filter (featured first, then rating), navy header + count. Reads `?province=` from ContractorMatch links. |
+| `ConstructorsClient.tsx` | Debounced search, province/specialization/sort selects, verified toggle, List/Map segmented control, map legend (free gray / verified blue / featured gold), empty + reset states, URL-synced |
+| `ContractorCard.tsx` | Avatar initials, featured/verified badges, PCAB(green)/PRC(blue) license badges, rating (or "No reviews yet"), price/sqm, View Profile + Contact |
+| `ContractorMap.tsx` | `dynamic(ssr:false)` wrapper + skeleton (Leaflet touches window) |
+| `ContractorMapInner.tsx` | Leaflet MapContainer (PH center, zoom 6), OSM tiles, `L.divIcon` tier-colored markers, hardcoded province→coords + jitter, popups with View Profile link |
+| `ContactButton.tsx` | Quote dialog (RHF+Zod): name/phone required, email, location prefill, prefilled message. Prominent tappable phone(tel:)/email(mailto:)/WhatsApp/Messenger. POST /api/leads. Independent-contractor disclaimer |
+
+### Contractor profile (`app/constructors/[id]/`)
+| File | Purpose |
+|------|---------|
+| `app/constructors/[id]/page.tsx` | Server — notFound() handling, dynamic metadata, hero cover band, two-column (About/Specializations/Coverage/License/Portfolio gallery + sticky Contact card), reviews, disclaimer |
+| `ReviewsSection.tsx` | Rating summary + 5→1 distribution bars, review dialog (star picker + text + project type/location), auth-gated ("Sign in to review"), router.refresh() after submit |
+| `ReviewCard.tsx` | Avatar initials, name, relative date, stars, project chips, review text |
+
+### API routes
+| File | Methods | Logic |
+|------|---------|-------|
+| `app/api/leads/route.ts` | POST | Zod-validated (name+phone+contractorId required), optional session, admin-client insert (user_id or null), fire-and-forget contractor lead email |
+| `app/api/reviews/route.ts` | POST | Auth required (401), Zod-validated, user-client insert (RLS enforces auth.uid()=user_id), 409 on duplicate (PG code 23505), trigger handles rating recompute |
+
+`lib/email/templates.ts` extended with `contractorLeadEmail(...)` — existing exports intact.
+
+### Cost calculator (`app/calculator/`, `components/calculator/`)
+| File | Purpose |
+|------|---------|
+| `app/calculator/page.tsx` | Server — fetches all cost_calculator_data, navy header |
+| `CalculatorClient.tsx` | Floor area slider+number (30–500), region select, province select (filtered by region), quality segmented (Economy/Standard/Premium), include-phase checkboxes (uncheck removes from total). Live compute via `calculateCost`. Animated total count-up + Framer bar chart + min/avg/max table. CTAs: Browse within budget (/gallery?cost_max=), Share Estimate. URL prefill + sync |
+
+### DIY guides (`app/guides/`, `components/guides/`)
+| File | Purpose |
+|------|---------|
+| `app/guides/page.tsx` | Server — guides newest first, ?category= filter, category pills (All + 9 categories) as links with active state, GuideCard grid, empty state |
+| `components/guides/GuideCard.tsx` | Reusable — category-colored top band, badge, title, excerpt clamp, read-time, links /guides/[slug], 9-category color map |
+| `app/guides/[slug]/page.tsx` | Server — notFound() if missing, dynamic metadata, article layout (cover band, badge, Playfair title, meta), related guides (same category ≤3), CTA card, breadcrumb |
+| `components/guides/GuideMarkdown.tsx` | react-markdown + remark-gfm with Tailwind-styled component mapping (headings, lists, **tables** render readably) |
+
+### Shared constants
+- `lib/constants/contractors.ts` — specialization list
+- `lib/constants/guides.ts` — category labels + colors
+
+### Deviations
+1. Native selects/inputs over base-ui Select/Slider for filter bars + calculator (matches established convention, avoids controlled-value quirks). shadcn Dialog still used for contact/review modals
+2. `remark-gfm` added — react-markdown v10 doesn't render tables without it, and guide content has tables
+
+### Routes after Phase 5 (28 total)
+New: `/calculator`, `/constructors`, `/constructors/[id]`, `/guides`, `/guides/[slug]`, `/api/leads`, `/api/reviews`
+
+---
+
 ## What is NOT built yet (deferred to later phases)
 
 | Feature | Target phase |
 |---------|-------------|
-| Contractor marketplace page | Phase 5 |
-| Cost calculator full page | Phase 5 |
-| DIY Guides listing + detail | Phase 5 |
-| Admin panel | Phase 6 |
-| Legal pages | Phase 6 |
-| PWA manifest | Phase 6 |
-| SEO sitemap + robots.txt | Phase 6 |
+| Admin panel (designs/contractors/orders/guides CRUD) | Phase 6 |
+| Legal pages (terms/privacy/disclaimer) | Phase 6 |
+| PWA manifest + service worker | Phase 6 |
+| SEO sitemap.xml + robots.txt | Phase 6 |
 | PayMongo integration | Phase 7 |
 | Stripe integration | Phase 7 |
 | Resend email integration | Phase 7 |
@@ -527,4 +585,4 @@ All interfaces for the entire application:
 
 ---
 
-*Last updated: Phase 3 complete — 2026-05-29*
+*Last updated: Phase 5 complete — 2026-05-29*

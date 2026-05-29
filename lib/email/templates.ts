@@ -174,3 +174,89 @@ Need help? Reply to this email.
     text,
   }
 }
+
+export function contractorLeadEmail(params: {
+  contractorName: string
+  contractorEmail: string
+  leadName: string
+  leadPhone: string
+  leadEmail?: string
+  leadLocation?: string
+  message?: string
+  designTitle?: string
+}): EmailMessage {
+  const {
+    contractorName,
+    contractorEmail,
+    leadName,
+    leadPhone,
+    leadEmail,
+    leadLocation,
+    message,
+    designTitle,
+  } = params
+
+  const dashboardUrl = siteUrl()
+  const projectLine = designTitle
+    ? `interested in building <strong>${designTitle}</strong>`
+    : 'interested in building a home'
+
+  const rows: Array<[string, string]> = [
+    ['Name', leadName],
+    ['Phone', leadPhone],
+  ]
+  if (leadEmail) rows.push(['Email', leadEmail])
+  if (leadLocation) rows.push(['Location', leadLocation])
+  if (designTitle) rows.push(['Design', designTitle])
+
+  const rowsHtml = rows
+    .map(
+      ([label, value], i) =>
+        `<tr><td style="padding:12px 16px;font-size:14px;color:#6B7280;${i > 0 ? 'border-top:1px solid #eee;' : ''}">${label}</td><td style="padding:12px 16px;font-size:14px;text-align:right;color:${NAVY};font-weight:bold;${i > 0 ? 'border-top:1px solid #eee;' : ''}">${value}</td></tr>`
+    )
+    .join('')
+
+  const html = layout({
+    heading: 'You have a new lead!',
+    bodyHtml: `
+      <p style="font-size:15px;line-height:1.7;margin:0 0 16px;">Hi ${contractorName},</p>
+      <p style="font-size:15px;line-height:1.7;margin:0 0 16px;">
+        A potential client found you on PlanaCasa and is ${projectLine}. Here are their details:
+      </p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eee;border-radius:8px;margin:0 0 16px;">
+        ${rowsHtml}
+      </table>
+      ${
+        message
+          ? `<h2 style="font-size:17px;color:${NAVY};margin:16px 0 8px;">Their message</h2>
+             <p style="font-size:14px;line-height:1.7;margin:0 0 16px;padding:14px 16px;background-color:#F8F5F0;border-radius:8px;">${message}</p>`
+          : ''
+      }
+      <p style="font-size:14px;line-height:1.7;margin:0 0 8px;">
+        Reach out to <strong>${leadName}</strong> at <a href="tel:${leadPhone}" style="color:${NAVY};">${leadPhone}</a> as soon as you can.
+      </p>
+      ${button('Visit PlanaCasa', dashboardUrl)}
+      <p style="font-size:13px;line-height:1.7;color:#6B7280;margin:24px 0 0;">
+        PlanaCasa connects you with potential clients but is not party to any agreement between you and the client.
+      </p>`,
+  })
+
+  const text = `New lead from PlanaCasa!
+
+Hi ${contractorName},
+
+A potential client is ${designTitle ? `interested in building ${designTitle}` : 'interested in building a home'}.
+
+${rows.map(([label, value]) => `${label}: ${value}`).join('\n')}
+${message ? `\nMessage:\n${message}\n` : ''}
+Reach out to ${leadName} at ${leadPhone} as soon as you can.
+
+(Sent to ${contractorEmail})`
+
+  return {
+    to: contractorEmail,
+    subject: `New PlanaCasa lead — ${leadName}`,
+    html,
+    text,
+  }
+}
