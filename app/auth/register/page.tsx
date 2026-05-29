@@ -85,6 +85,13 @@ export default function RegisterPage() {
       return
     }
 
+    // Fire-and-forget welcome email (don't block the redirect).
+    fetch('/api/welcome', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: data.email, name: data.full_name }),
+    }).catch(() => {})
+
     toast.success('Account created! Check your email to confirm.')
     router.push('/dashboard')
     router.refresh()

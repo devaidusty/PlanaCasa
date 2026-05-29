@@ -414,12 +414,78 @@ All interfaces for the entire application:
 
 ---
 
+## Commit 5 — Phase 4: checkout, mock payment, downloads, dashboard, email service
+
+**Date:** 2026-05-29
+**Branch:** main
+**Files:** 24 created · 1 modified · shadcn `textarea` added
+
+### Infrastructure changes
+- **Supabase Storage:** private bucket `plan-files` created (public=false) for gated plan downloads via signed URLs.
+
+### Payment abstraction (`lib/payments/`)
+| File | Purpose |
+|------|---------|
+| `types.ts` | `PaymentIntent`, `CreateIntentParams`, `PaymentProvider` interfaces |
+| `mock.ts` | `MockPaymentProvider` — UUID intent IDs, `confirmIntent` returns 'completed' (or 'failed' if intentId contains 'fail' for testing) |
+| `index.ts` | `getPaymentProvider(method)` → MockPaymentProvider for now (Stripe/PayMongo adapters slot in Phase 7) |
+
+### Email service (`lib/email/`)
+| File | Purpose |
+|------|---------|
+| `types.ts` | `EmailMessage`, `EmailService` interfaces |
+| `templates.ts` | `welcomeEmail()`, `purchaseConfirmationEmail()` — inline-styled table HTML (navy/gold), uses NEXT_PUBLIC_SITE_URL |
+| `console.ts` | `ConsoleEmailService` — logs boxed summary + text body to server console |
+| `index.ts` | `getEmailService()` → ConsoleEmailService for now (ResendEmailService in Phase 7) |
+
+### API routes
+| File | Methods | Logic |
+|------|---------|-------|
+| `app/api/purchases/route.ts` | POST / GET | POST: auth-check → load package+design via admin → **derive amount server-side** (never trust client) → currency PHP (gcash/maya/card/bank) or USD (stripe_card) → mock createIntent+confirmIntent → insert purchase (method mapped to paymongo/stripe/mock) → upsert buyer profile → send confirmation email → 402 on failure. GET: list user purchases joined w/ design+package |
+| `app/api/downloads/[purchaseId]/route.ts` | GET | Auth → ownership 403 → status!=completed 403 → count>=5 OR >30 days 410 → signed URL (300s TTL) → increment counter only on real file → demo JSON (no increment) if file missing |
+| `app/api/customization/route.ts` | POST / GET | POST: auth → insert customization_request (status pending). GET: list user requests joined w/ design |
+| `app/api/welcome/route.ts` | POST | Fire-and-forget welcome email on registration |
+
+### Checkout & Success
+| File | Purpose |
+|------|---------|
+| `app/checkout/page.tsx` | Server shell — reads `?design=slug&package=id`, fetches design+packages+profile, noindex metadata |
+| `components/checkout/CheckoutClient.tsx` | Two-column (forms / sticky summary). Package radio cards, RHF+Zod buyer form, PayMongo/Stripe payment tabs (gcash/maya/card/bank/stripe_card), promo field (cosmetic), terms checkbox, demo-mode banner. POST /api/purchases → /success |
+| `app/success/page.tsx` | Server — verifies purchase ownership, noindex |
+| `components/checkout/SuccessClient.tsx` | Framer spring checkmark, order recap, "Download Your Plans" (handles demo/410/redirect), Find Contractor, FB share, dashboard links |
+
+### Dashboard (`app/dashboard/`)
+| File | Purpose |
+|------|---------|
+| `layout.tsx` | Sidebar nav (Overview/Purchases/Wishlist/Customization/Settings), user avatar+name, active highlight |
+| `page.tsx` | Overview — 3 stat cards, recent purchases, empty-state nudge |
+| `purchases/page.tsx` + `components/dashboard/PurchasesList.tsx` | Purchase cards: thumbnail, package badge, amount, status badge, DownloadButton (X/5), Find Contractor, Invoice dialog (window.print) |
+| `components/dashboard/DownloadButton.tsx` | Calls /api/downloads, handles demo/410/redirect, updates used count |
+| `wishlist/page.tsx` + `components/dashboard/WishlistGrid.tsx` | DesignCard grid, optimistic remove via DELETE /api/wishlist |
+| `customization/page.tsx` + `components/dashboard/CustomizationList.tsx` | New Request dialog, 4-step status stepper (Pending→Reviewing→Quoted→Completed) |
+| `settings/page.tsx` + `components/dashboard/SettingsForm.tsx` | Edit profile (RLS owner update), password reset email, delete-account stub |
+
+### Shared helpers
+- `lib/constants/locations.ts` — 20 major provinces + countries list (deduped)
+- `lib/utils/triggerDownload.ts` — shared download handler (Success + DownloadButton)
+
+### Modified
+- `app/auth/register/page.tsx` — fire-and-forget POST /api/welcome after sign-up
+
+### Deviations
+1. `Facebook` icon missing in lucide-react v1.17 → used `Share2` for FB share button
+2. Base-UI Dialog has no `asChild` → styled DialogTrigger/Close directly
+3. CheckoutClient takes `userEmail` + `profile` separately (auth email not reliably on public.users row)
+
+### Known limitation (flagged for later)
+- Download counter increment is read-then-write (non-atomic). Concurrent requests could over-count by 1-2. Negligible for owned digital goods; harden with a Postgres atomic increment RPC later if needed.
+
+---
+
 ## What is NOT built yet (deferred to later phases)
 
 | Feature | Target phase |
 |---------|-------------|
-| Checkout + payment flow | Phase 4 |
-| User dashboard | Phase 4 |
 | Contractor marketplace page | Phase 5 |
 | Cost calculator full page | Phase 5 |
 | DIY Guides listing + detail | Phase 5 |
